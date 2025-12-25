@@ -67,8 +67,13 @@ Set these in your deployment platform:
 - **Setup:**
   1. Connect GitHub repository
   2. Add environment variables
-  3. Deploy
-  4. **Remove `vercel.json` cron config** (we use Trigger.dev instead)
+  3. **Vercel will auto-detect:**
+     - Framework: Next.js (from `vercel.json`)
+     - Package Manager: pnpm (from `packageManager` field and `pnpm-lock.yaml`)
+     - Build Command: `pnpm build` (configured in `vercel.json`)
+     - Install Command: `pnpm install` (configured in `vercel.json`)
+  4. Deploy
+  5. **Note:** `vercel.json` is configured to use pnpm (not npm default)
 
 ### Option 5: Self-Hosted (VPS)
 - Use any VPS provider (DigitalOcean, Linode, etc.)
