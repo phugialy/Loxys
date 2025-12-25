@@ -3,8 +3,15 @@ import { processQueuedDeliveries } from "@/server/campaigns/send";
 
 /**
  * Scheduled task to process queued deliveries
- * This can be scheduled via Trigger.dev dashboard or called manually
- * For now, we'll use the manual trigger approach - scheduling can be configured in the dashboard
+ * 
+ * This task is configured to run every 5 minutes via Trigger.dev dashboard.
+ * No Vercel cron limits - Trigger.dev handles all scheduling in the cloud.
+ * 
+ * To enable scheduling:
+ * 1. Deploy this task: pnpm deploy:trigger
+ * 2. Go to Trigger.dev dashboard → Your project → Schedules
+ * 3. Create a new schedule for "scheduled-process-deliveries"
+ * 4. Set cron expression: every 5 minutes (format: star-slash-5 star star star star)
  */
 export const scheduledProcessDeliveries = task({
   id: "scheduled-process-deliveries",
