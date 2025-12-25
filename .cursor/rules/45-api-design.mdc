@@ -1,0 +1,7 @@
+---
+alwaysApply: true
+---
+## Colocated backend rule (MVP)
+- DEFAULT: APIs live inside the web app repo (colocated).
+- Prefer a thin “service layer” in `server/` and keep route handlers minimal.
+- Avoid creating a separate backend service during MVP unless explicitly requested.

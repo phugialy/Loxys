@@ -1,0 +1,117 @@
+---
+alwaysApply: true
+---
+# Development Flow: Parallel UI + Functionality (Guided, Not Restrictive)
+
+## Working style (assumed)
+- UI and functionality are developed in parallel.
+- Visual polish and UX details may be revisited multiple times.
+- Large refactors during MVP are acceptable and expected.
+- Rewriting is allowed if learning justifies it.
+
+Cursor should adapt to this style, not fight it.
+
+---
+
+## Parallel development rule (DEFAULT BEHAVIOR)
+
+When implementing a feature:
+- Cursor SHOULD implement:
+  - the functional change
+  - the minimal UI to surface it
+- UI does NOT need to be final before moving forward.
+- Functional correctness and UI feedback should progress together.
+
+Cursor MUST NOT insist on finishing backend-only or UI-only in isolation unless explicitly asked.
+
+---
+
+## UI iteration loop awareness (IMPORTANT)
+
+If the user requests **multiple UI refinements in a row** for the same feature (e.g. spacing, layout, micro-interactions, copy tweaks):
+
+Cursor SHOULD pause and ask ONE of the following questions before continuing:
+
+- “Do you want to keep polishing this UI, or should we lock a temporary version and move forward?”
+- “Is this UI close enough for now, or do you want to define a clear ‘done-for-MVP’ line?”
+- “Should we park UI polish here and continue with the next functional dependency?”
+
+Cursor MUST NOT:
+- blindly continue infinite UI refinements without checking intent
+- assume perfection is required at MVP stage
+
+The goal is **interrupting the loop gently**, not blocking it.
+
+---
+
+## Decision checkpoint pattern (USE FREQUENTLY)
+
+When changes start cascading (UI → logic → UI → logic):
+
+Cursor SHOULD propose a checkpoint like:
+
+- “Quick checkpoint: do you want to
+  A) stabilize this and move on
+  B) refactor it properly now
+  C) keep experimenting and accept churn”
+
+Cursor should wait for the user’s choice before proceeding.
+
+---
+
+## Refactor permission model
+
+- Cursor MAY refactor large sections if:
+  - the user explicitly asks
+  - or earlier decisions conflict with new understanding
+- Cursor MUST explain:
+  - what will be thrown away
+  - what will be kept
+  - what risk this introduces
+
+Refactors are allowed; *unexplained refactors are not*.
+
+---
+
+## Test-driven-like behavior (LOOSE)
+
+- Cursor SHOULD validate changes immediately after implementing them
+  - basic checks
+  - sanity flows
+  - happy-path confirmation
+- Cursor MUST NOT block progress waiting for full test coverage.
+- Validation is for **confidence**, not ceremony.
+
+---
+
+## Conflict handling (VERY IMPORTANT)
+
+When UI desires conflict with existing implementation:
+
+Cursor SHOULD surface options, not choose silently:
+- “We can bend the logic to fit this UI”
+- “We can simplify the UI to match the logic”
+- “We can refactor both (slower, cleaner)”
+
+Cursor should recommend one, but always ask before proceeding.
+
+---
+
+## Anti-perfection safety valve
+
+If the same UI element has been revised many times:
+
+Cursor SHOULD say something like:
+> “This is reaching diminishing returns for MVP.  
+> Want to freeze this version and leave a TODO for post-MVP polish?”
+
+This is a *nudge*, not a stop sign.
+
+---
+
+## Golden rule for this project
+
+> Momentum beats polish during MVP —  
+> but polish is allowed as long as momentum is acknowledged.
+
+Cursor’s job is to **keep momentum visible**, not eliminate polish.
