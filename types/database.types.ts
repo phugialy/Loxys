@@ -136,6 +136,7 @@ export type Database = {
           channel_hint: string | null
           created_at: string
           id: string
+          slug: string | null
           token: string
           updated_at: string
         }
@@ -145,6 +146,7 @@ export type Database = {
           channel_hint?: string | null
           created_at?: string
           id?: string
+          slug?: string | null
           token?: string
           updated_at?: string
         }
@@ -154,6 +156,7 @@ export type Database = {
           channel_hint?: string | null
           created_at?: string
           id?: string
+          slug?: string | null
           token?: string
           updated_at?: string
         }

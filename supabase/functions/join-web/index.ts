@@ -36,12 +36,20 @@ Deno.serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Validate join token
-    const { data: joinToken, error: tokenError } = await supabase
+    // Validate join token (support both UUID token and custom slug)
+    const isSlug = /^[a-z0-9-]+$/.test(token) && !token.includes('{');
+    
+    let tokenQuery = supabase
       .from("join_tokens")
-      .select("account_id, active")
-      .eq("token", token)
-      .single();
+      .select("account_id, active");
+    
+    if (isSlug) {
+      tokenQuery = tokenQuery.eq("slug", token);
+    } else {
+      tokenQuery = tokenQuery.eq("token", token);
+    }
+    
+    const { data: joinToken, error: tokenError } = await tokenQuery.single();
 
     if (tokenError || !joinToken || !joinToken.active) {
       return new Response(
@@ -205,4 +213,3 @@ Deno.serve(async (req: Request) => {
     );
   }
 });
-

@@ -5,6 +5,7 @@ import {
   deactivateJoinToken,
   activateJoinToken,
   regenerateJoinToken,
+  deleteJoinToken,
 } from '@/server/join-tokens/service';
 
 export async function PATCH(
@@ -48,6 +49,33 @@ export async function PATCH(
     console.error('Error updating join token:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to update join token' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { id } = await params;
+    await deleteJoinToken(id);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting join token:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to delete join token' },
       { status: 500 }
     );
   }

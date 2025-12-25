@@ -17,12 +17,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Link2, Copy, Check, Power, RefreshCw, QrCode } from 'lucide-react';
+import { Plus, Link2, Copy, Check, Power, RefreshCw, QrCode, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { QRCodeDialog } from '@/components/join/qr-code-dialog';
 
 interface JoinToken {
   id: string;
   token: string;
+  slug: string | null;
   channel_hint: string | null;
   active: boolean;
   created_at: string;
@@ -33,9 +35,19 @@ export default function JoinTokensPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [editingSlug, setEditingSlug] = useState<{ tokenId: string; slug: string } | null>(null);
   const [regenerateDialog, setRegenerateDialog] = useState<{ open: boolean; tokenId: string | null }>({
     open: false,
     tokenId: null,
+  });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; tokenId: string | null }>({
+    open: false,
+    tokenId: null,
+  });
+  const [qrDialog, setQrDialog] = useState<{ open: boolean; token: string | null; tokenName: string | null }>({
+    open: false,
+    token: null,
+    tokenName: null,
   });
   const { toast } = useToast();
 
@@ -151,6 +163,35 @@ export default function JoinTokensPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteDialog.tokenId) return;
+
+    try {
+      const response = await fetch(`/api/join-tokens/${deleteDialog.tokenId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to delete token');
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Join link deleted successfully',
+      });
+
+      setDeleteDialog({ open: false, tokenId: null });
+      fetchTokens();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to delete join link',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const copyToClipboard = async (url: string, tokenId: string) => {
     try {
       await navigator.clipboard.writeText(url);
@@ -169,11 +210,12 @@ export default function JoinTokensPage() {
     }
   };
 
-  const getJoinUrl = (token: string) => {
+  const getJoinUrl = (token: string, slug: string | null) => {
     const baseUrl = typeof window !== 'undefined' 
       ? window.location.origin 
       : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    return `${baseUrl}/join/${token}`;
+    // Use slug if available, otherwise fall back to token UUID
+    return `${baseUrl}/join/${slug || token}`;
   };
 
   if (loading) {
@@ -238,8 +280,9 @@ export default function JoinTokensPage() {
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
           {tokens.map((token) => {
-            const joinUrl = getJoinUrl(token.token);
+            const joinUrl = getJoinUrl(token.token, token.slug);
             const isCopied = copiedToken === token.id;
+            const isEditingSlug = editingSlug?.tokenId === token.id;
 
             return (
               <Card key={token.id} className={!token.active ? 'opacity-60' : ''}>
@@ -263,6 +306,77 @@ export default function JoinTokensPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Custom Slug (Optional)</Label>
+                    {isEditingSlug ? (
+                      <div className="flex gap-2">
+                        <Input
+                          value={editingSlug.slug}
+                          onChange={(e) => {
+                            const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                            setEditingSlug({ ...editingSlug, slug: value });
+                          }}
+                          placeholder="my-store"
+                          className="font-mono text-xs"
+                          maxLength={50}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(`/api/join-tokens/${token.id}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ slug: editingSlug?.slug || null }),
+                              });
+                              if (!response.ok) throw new Error('Failed to update slug');
+                              toast({
+                                title: 'Success',
+                                description: 'Custom slug updated',
+                              });
+                              setEditingSlug(null);
+                              fetchTokens();
+                            } catch (error) {
+                              toast({
+                                title: 'Error',
+                                description: error instanceof Error ? error.message : 'Failed to update slug',
+                                variant: 'destructive',
+                              });
+                            }
+                          }}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingSlug(null)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          value={token.slug || 'Not set'}
+                          readOnly
+                          placeholder="No custom slug"
+                          className="font-mono text-xs"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingSlug({ tokenId: token.id, slug: token.slug || '' })}
+                        >
+                          {token.slug ? 'Edit' : 'Set Slug'}
+                        </Button>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Use a custom URL like /join/my-store instead of the UUID. Only lowercase letters, numbers, and hyphens.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground">Join URL</Label>
                     <div className="flex gap-2">
                       <Input
@@ -284,24 +398,48 @@ export default function JoinTokensPage() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 pt-2 border-t">
+                  <div className="space-y-2 pt-2 border-t">
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
-                      onClick={() => handleToggleActive(token.id, token.active)}
-                      className="flex-1"
+                      onClick={() => setQrDialog({ 
+                        open: true, 
+                        token: token.slug || token.token,
+                        tokenName: token.channel_hint || 'Join Link'
+                      })}
+                      className="w-full"
                     >
-                      <Power className="mr-2 h-4 w-4" />
-                      {token.active ? 'Deactivate' : 'Activate'}
+                      <QrCode className="mr-2 h-4 w-4" />
+                      View QR Code
                     </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleToggleActive(token.id, token.active)}
+                        className="flex-1"
+                      >
+                        <Power className="mr-2 h-4 w-4" />
+                        {token.active ? 'Deactivate' : 'Activate'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setRegenerateDialog({ open: true, tokenId: token.id })}
+                        className="flex-1"
+                      >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Regenerate
+                      </Button>
+                    </div>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setRegenerateDialog({ open: true, tokenId: token.id })}
-                      className="flex-1"
+                      onClick={() => setDeleteDialog({ open: true, tokenId: token.id })}
+                      className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
                     >
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Regenerate
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
                     </Button>
                   </div>
 
@@ -336,6 +474,41 @@ export default function JoinTokensPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ open, tokenId: null })}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Join Link?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the join link and it will no longer be accessible.
+              Are you sure you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* QR Code Dialog */}
+      {qrDialog.token && (
+        <QRCodeDialog
+          open={qrDialog.open}
+          onOpenChange={(open) => setQrDialog({ open, token: open ? qrDialog.token : null, tokenName: open ? qrDialog.tokenName : null })}
+          url={getJoinUrl(qrDialog.token, qrDialog.token)}
+          tokenName={qrDialog.tokenName || undefined}
+        />
+      )}
     </div>
   );
 }
